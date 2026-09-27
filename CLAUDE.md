@@ -40,7 +40,9 @@ jeongsi-panse/
 │   ├── _load.js           빌드와 같은 순서로 data+engine을 합쳐 평가하는 로더
 │   ├── harness.js         의존성 없는 최소 assert 하네스
 │   ├── data.test.js       데이터 불변식 11종
-│   └── engine.test.js     엔진 검증 42종 (회귀 테스트 6건 포함)
+│   ├── engine.test.js     엔진 검증 42종 (회귀 테스트 6건 포함)
+│   └── sim.test.js        모의지원 검증 20종 (§6-1)
+├── sim/                   모의지원 시뮬레이터 (§6-1) — 노드 전용, 페이지에 안 실림
 └── dist/
     ├── index.html         게시본 — Artifact에 올리는 파일
     └── preview.html       로컬 확인용 (doctype 래퍼가 붙은 버전)
@@ -54,9 +56,10 @@ jeongsi-panse/
 ## 3. 명령
 
 ```bash
-npm test      # 데이터 불변식 + 엔진 검증 (53개)
+npm test      # 데이터 불변식 + 엔진 검증 + 모의지원 검증 (73개)
 npm run build # dist/index.html 생성 + 게시 규칙 검증
 npm run check # 위 둘을 순서대로
+npm run sim   # 모의지원 시뮬레이션 30만 명 × 20회 (약 1분, §6-1)
 
 # 합격선 데이터 갱신 (네트워크 필요, 프록시 뒤에서는 NODE_USE_ENV_PROXY=1)
 node scripts/fetch-adiga.js   # 새 파일만 받는다. 다시 받으려면 data/adiga/raw 해당 파일 삭제
@@ -220,10 +223,33 @@ localStorage(반영비율 덮어쓰기, 담아둔 원서 3장)에 저장된다. 
 
 ---
 
+## 6-1. 모의지원 시뮬레이터 (`sim/`)
+
+모의 수험생 집단이 학과마다 「모집인원 × 경쟁률」만큼 지원하고, 환산점수 순 합격·추가합격을 거쳐 등록하는
+과정을 돌려 70% 컷·충원율을 낸다. 노드 전용 연구 도구이고 **페이지(`dist/`)에는 실리지 않는다.**
+
+```
+sim/model.js       모델 (makePopulation → makeDepts → buildCandidates → fitAttraction → sampleChoices → admit)
+sim/mock-apply.js  실행 · 보고 (npm run sim). 결과 sim/out/ 는 .gitignore
+tests/sim.test.js  불변식 20종 [S1]~[S6] — npm test 에 포함
+```
+
+- 엔진은 `tests/_load.js`로 불러 **그대로** 쓴다. 시뮬레이터 때문에 `engine.js`를 고치지 않는다.
+- 속도 때문에 수험생 환산점수만 `scoreOf()`로 따로 계산한다. **`calcScore`와 같은 값이어야 한다** — `[S2]`가 막고 있다.
+  엔진의 환산식을 바꾸면 `scoreOf()`도 같이 바꾼다.
+- 모의 수험생 백분위는 1 이상이다. 엔진은 0을 「미입력」으로 보고 탐구 평균에서 뺀다(`[E12]`).
+- 합격선 비교는 **평균백분위(「어디가」 공개값)** 와 **앱 단위(합격선 환산총점 대비 %p)** 둘 다 본다.
+  평균백분위 컷은 70% 컷 수험생 한 명의 영어 등급에 끌려가므로, 학과별 오르내림은 %p로 판단한다.
+- 보정한 값(`DEFAULTS`의 `muGroup`, `outside`)을 바꾸면 README 「모의지원 시뮬레이션」의 검증 표를 다시 채운다.
+  숫자는 반드시 `npm run sim` 출력에서 옮긴다 — 지어내지 않는다.
+- 학과별 「오를/내려갈 후보」는 역검증 전까지 **예측이라고 부르지 않는다.**
+
+---
+
 ## 7. 변경 절차
 
 1. `src/` 아래를 고친다. `dist/`는 **절대 직접 수정하지 않는다** (빌드 산출물).
-2. `npm run check` — 테스트 53개 통과 + 빌드 성공.
+2. `npm run check` — 테스트 73개 통과 + 빌드 성공.
 3. 시각 변경이면 `dist/preview.html`을 브라우저(또는 Playwright)로 **한 번** 확인한다.
    라이트/다크/모바일(400px) 세 폭에서 가로 스크롤이 생기지 않아야 한다.
 4. `dist/index.html`을 기존 Artifact URL에 **재게시**한다 (새 아티팩트를 만들지 않는다).
