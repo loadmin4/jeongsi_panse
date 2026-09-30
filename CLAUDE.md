@@ -36,11 +36,16 @@ jeongsi-panse/
 │   ├── fetch-adiga.js     「어디가」 정시 결과 내려받기 → data/adiga/raw
 │   └── import-adiga.js    data/adiga/raw → src/univs.js
 ├── data/adiga/raw/        「어디가」 원자료 (대학코드_학년도.json, 35개 대학 × 2023~2026)
+├── sim/                   모의 지원 시뮬레이터 — 가상 수험생으로 합격확률 곡선 학습 (앱과 분리)
+│   ├── model.js           성적 생성·지원·합격/추가합격 매칭·로지스틱 학습
+│   ├── run.js             실행 → sim/out/report.{md,json} (git 제외)
+│   └── README.md
 ├── tests/
 │   ├── _load.js           빌드와 같은 순서로 data+engine을 합쳐 평가하는 로더
 │   ├── harness.js         의존성 없는 최소 assert 하네스
 │   ├── data.test.js       데이터 불변식 11종
-│   └── engine.test.js     엔진 검증 42종 (회귀 테스트 6건 포함)
+│   ├── engine.test.js     엔진 검증 42종 (회귀 테스트 6건 포함)
+│   └── sim.test.js        시뮬레이터 검증 8종 (매칭 안정성·학습·표본·앱 엔진과 같은 격차)
 └── dist/
     ├── index.html         게시본 — Artifact에 올리는 파일
     └── preview.html       로컬 확인용 (doctype 래퍼가 붙은 버전)
@@ -54,13 +59,16 @@ jeongsi-panse/
 ## 3. 명령
 
 ```bash
-npm test      # 데이터 불변식 + 엔진 검증 (53개)
+npm test      # 데이터 불변식 + 엔진 + 시뮬레이터 검증 (61개)
 npm run build # dist/index.html 생성 + 게시 규칙 검증
 npm run check # 위 둘을 순서대로
 
 # 합격선 데이터 갱신 (네트워크 필요, 프록시 뒤에서는 NODE_USE_ENV_PROXY=1)
 node scripts/fetch-adiga.js   # 새 파일만 받는다. 다시 받으려면 data/adiga/raw 해당 파일 삭제
 node scripts/import-adiga.js  # src/univs.js 재생성
+
+# 모의 지원 시뮬레이션 (합격확률 곡선 학습, 앱과 무관)
+npm run sim                   # 30만 명 × 1회, 약 40초 → sim/out/report.md
 ```
 
 `npm run build`는 통과 조건을 스스로 검사한다: 금지 태그(`<!doctype>` / `<html>` / `<head>` /
@@ -223,7 +231,7 @@ localStorage(반영비율 덮어쓰기, 담아둔 원서 3장)에 저장된다. 
 ## 7. 변경 절차
 
 1. `src/` 아래를 고친다. `dist/`는 **절대 직접 수정하지 않는다** (빌드 산출물).
-2. `npm run check` — 테스트 53개 통과 + 빌드 성공.
+2. `npm run check` — 테스트 61개 통과 + 빌드 성공.
 3. 시각 변경이면 `dist/preview.html`을 브라우저(또는 Playwright)로 **한 번** 확인한다.
    라이트/다크/모바일(400px) 세 폭에서 가로 스크롤이 생기지 않아야 한다.
 4. `dist/index.html`을 기존 Artifact URL에 **재게시**한다 (새 아티팩트를 만들지 않는다).
@@ -235,6 +243,15 @@ localStorage(반영비율 덮어쓰기, 담아둔 원서 3장)에 저장된다. 
 둘 다 실제로 겪은 오류이고, 테스트 이름에 "회귀"라고 적혀 있다.
 
 ---
+
+## 7-1. 시뮬레이터 규칙 (`sim/`)
+
+- 시뮬레이터는 **앱 엔진을 그대로 쓴다.** 격차·환산총점을 따로 구현하지 말 것. `[S4]`가 앱 `analyze()`와
+  격차가 일치하는지 검사한다(수험생별 대응표 보정 포함).
+- 지원 행동·성적 분포는 모두 `CONFIG`의 **가정**이다. 리포트에 그대로 기록되고, 결과는 "시뮬레이션 기반"으로만 말한다.
+- **현실성 점검 shift(시뮬레이션 70% 컷 − 실측 합격선, 환산 %p)가 ±0.5%p 안에 들기 전에는 학습 곡선을 앱에 넣지 않는다.**
+  기본 가정의 shift는 +1.83%p다 — 지원 행동 보정이 먼저다.
+- 앱 합격확률을 바꾸게 되면 UI에 "시뮬레이션 기반"임을 밝히고 이 파일 §5·§8을 고친다.
 
 ## 8. 알려진 한계 (사용자에게 숨기지 말 것)
 

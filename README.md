@@ -129,7 +129,8 @@
 ## 실행
 
 ```bash
-npm test          # 데이터 불변식 11종 + 엔진 검증 42종 = 53개
+npm test          # 데이터 불변식 11종 + 엔진 42종 + 시뮬레이터 8종 = 61개
+npm run sim       # 가상 수험생 30만 명 모의 지원 → 합격확률 곡선 학습 (sim/README.md)
 npm run build     # dist/index.html 생성 (+ 게시 규칙 검증)
 npm run check     # 둘 다
 ```
@@ -146,6 +147,7 @@ src/app.html     UI (빌드가 데이터·엔진을 끼워 넣는다)
 scripts/build.js src/* → dist/index.html 단일 파일
 scripts/fetch-adiga.js / import-adiga.js   「어디가」 원자료 수집 · 변환
 data/adiga/raw/  「어디가」 원자료
+sim/             모의 지원 시뮬레이터 (앱과 분리, 결과는 sim/out/)
 tests/           데이터 불변식 · 엔진 검증 (의존성 없는 자체 하네스)
 ```
 
