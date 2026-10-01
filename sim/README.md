@@ -6,8 +6,34 @@
 
 **앱(`src/`, `dist/`)은 건드리지 않는다.** 결과는 `sim/out/`에만 남는다(git 제외).
 
+## 학습 → 평가 → 모의 지원
+
 ```bash
-npm run sim                                  # 30만 명 × 3회, 약 2분 → sim/out/report.md · model.json
+# 1) 학습: 시뮬레이션을 반복해 2026 입시 결과(경쟁률·70% 컷·추가합격)에 수렴시킨다 — 1회 약 1분
+npm run train                                # = node sim/converge.js (기본 12회)
+node sim/converge.js --iters 15 --eta 0.6 --seed 1 --alpha 0.7 --minGap -3 --holdout 0.2
+#    → sim/out/adjust.json (학과별 지원층 보정 δ, 다군 선호 π, 회차별 수렴 기록, 학습 설정)
+
+# 2) 평가: 학습 결과를 적용해 30만 명 × 3회 → 검증 학과 성적과 model.json — 약 2분
+npm run sim                                  # adjust.json이 있으면 자동 적용, 학습 때 설정(seed 등)을 그대로 따른다
+node sim/run.js --no-adjust                  # 보정 없이 (비교용)
+
+# 3) 모의 지원
+node sim/apply.js --kor 95 --math 96 --tam 96,94 --eng 2 --pick "서강대 컴퓨터"
+```
+
+**무엇을 보고 판단하나** — `sim/out/report.md`
+- 「경쟁률 예측」의 **검증 학과** 행: 학습에서 뺀 학과(기본 20%)의 경쟁률 오차. 학습 학과 행은 예측력이 아니다.
+- 「학과별 70% 컷 차이」의 **검증 학과** 행: 자기 합격선을 보지 않은 학과의 70% 컷 차이(0에 가까울수록 좋다).
+- 「현실성 점검 — 군별」: 군별 경쟁률·추가합격. 추가합격은 전체·다군만 맞추고 가·나군은 맞추지 않는다.
+- `adjust.json`의 `history`: 회차별로 지표가 어떻게 수렴했는지.
+
+**주의**: 학습(`converge.js`)과 평가(`run.js`)는 `seed`로 학습/검증 학과를 나눈다. 평가는 `adjust.json`에 기록된
+학습 설정을 따르므로 분할이 어긋나지 않는다. 검증 학과를 바꿔 보려면 `--seed`를 바꿔 **학습부터 다시** 돌린다.
+
+## 그 밖의 실행 예
+
+```bash
 node sim/run.js --runs 1 --alpha 0.5 --minGap -2.5
 
 # 수험생 모의 지원 (model.json 필요)

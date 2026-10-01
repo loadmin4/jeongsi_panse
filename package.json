@@ -7,6 +7,7 @@
     "build": "node scripts/build.js",
     "test": "node tests/data.test.js && node tests/engine.test.js && node tests/sim.test.js",
     "check": "npm test && npm run build",
-    "sim": "node sim/run.js"
+    "sim": "node sim/run.js",
+    "train": "node sim/converge.js"
   }
 }

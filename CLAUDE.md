@@ -43,7 +43,8 @@ jeongsi-panse/
 ├── data/adiga/raw/        「어디가」 원자료 (대학코드_학년도.json, 35개 대학 × 2023~2026)
 ├── sim/                   모의 지원 시뮬레이터 — 경쟁률 예측 · 수험생 모의 지원 (앱과 분리)
 │   ├── model.js           성적 생성·지원 규칙·경쟁률 예측 회귀·인기도 학습·합격/추가합격 매칭
-│   ├── run.js             실행 → sim/out/report.{md,json}, model.json (git 제외)
+│   ├── converge.js        반복 보정(학습) → sim/out/adjust.json (git 제외)
+│   ├── run.js             평가 → sim/out/report.{md,json}, model.json (git 제외)
 │   ├── apply.js           수험생 모의 지원: 내 성적·원서 3장 → 예상 경쟁률·모의 합격 확률
 │   └── README.md
 ├── tests/
@@ -74,7 +75,8 @@ node scripts/fetch-adiga.js   # 새 파일만 받는다. 다시 받으려면 dat
 node scripts/import-adiga.js  # src/univs.js 재생성
 
 # 모의 지원 시뮬레이션 (경쟁률 예측, 앱과 무관)
-npm run sim                   # 30만 명 × 3회, 약 2분 → sim/out/report.md · model.json
+npm run train                 # 반복 보정: 2026 결과에 수렴 (1회 약 1분) → sim/out/adjust.json
+npm run sim                   # 30만 명 × 3회, 약 2분 → sim/out/report.md · model.json (adjust.json 자동 적용)
 node sim/apply.js --kor 95 --math 96 --tam 96,94 --eng 2 --pick "서강대 컴퓨터"   # 수험생 모의 지원
 ```
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* 반복 보정 — 가상 시뮬레이션을 계속 돌려 2026학년도 실제 입시 결과에 수렴시킨다.
-   node sim/converge.js [--iters 12] [--eta 0.6] [--students 300000]
+   node sim/converge.js [--iters 12] [--eta 0.6] [--students 300000] [--seed N] [--alpha 0.7] [--minGap -3] [--holdout 0.2]
    → sim/out/adjust.json (학과별 지원층 보정 δ, 군별 선호 π, 수렴 기록). 이후 `npm run sim`이 자동으로 쓴다.
 
    한 바퀴:
@@ -20,7 +20,8 @@ const R = require('./run');
 const a = process.argv.slice(2), o = {};
 for (let i = 0; i < a.length; i += 2) o[a[i].replace(/^--/, '')] = a[i + 1];
 const cfg = Object.assign({}, M.CONFIG, { pi: [0, 0, 0] });
-if (o.students) cfg.students = +o.students;
+// 학습·평가가 같은 설정(특히 seed → 학습/검증 학과 분할)을 써야 검증이 새지 않는다 → adjust.json에 기록
+for (const k of ['students', 'seed', 'alpha', 'minGap', 'holdout', 'calibSample']) if (o[k] !== undefined) cfg[k] = +o[k];
 const ITERS = +(o.iters || 12), ETA = +(o.eta || 0.6);
 
 const t0 = Date.now();
@@ -74,6 +75,7 @@ for (let it = 1; it <= ITERS; it++) {
 }
 
 const out = { generatedAt: new Date().toISOString(), iterations: history.length, eta: ETA, pi: cfg.pi,
+  config: { students: cfg.students, seed: cfg.seed, alpha: cfg.alpha, minGap: cfg.minGap, holdout: cfg.holdout, calibSample: cfg.calibSample },
   delta: Object.fromEntries(depts.map((d, i) => [d.key, +delta[i].toFixed(4)])), history };
 fs.mkdirSync(path.join(__dirname, 'out'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, 'out', 'adjust.json'), JSON.stringify(out, null, 1));

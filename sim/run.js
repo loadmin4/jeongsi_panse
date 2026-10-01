@@ -107,6 +107,10 @@ function main() {
   let adjusted = false;
   if (fs.existsSync(adjFile) && !process.argv.includes('--no-adjust')) {
     const adj = JSON.parse(fs.readFileSync(adjFile, 'utf8'));
+    // 학습 때와 다른 seed·holdout이면 학습/검증 학과 분할이 달라져 검증이 샌다 → 학습 설정을 그대로 쓴다
+    for (const k of ['seed', 'holdout', 'alpha', 'minGap', 'students', 'calibSample'])
+      if (adj.config && adj.config[k] !== undefined && cfg[k] !== adj.config[k]) {
+        lap(`⚠ ${k}: 학습 설정(${adj.config[k]})으로 맞춤 (입력 ${cfg[k]})`); cfg[k] = adj.config[k]; }
     depts.forEach(d => { d.delta = adj.delta[d.key] || 0; });
     cfg.pi = adj.pi; adjusted = true;
     lap(`반복 보정 결과 적용 (${adj.iterations}회 보정, π = ${adj.pi.map(x => x.toFixed(2)).join('/')})`);
