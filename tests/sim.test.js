@@ -74,4 +74,60 @@ group('[S4] 앱 엔진과 같은 격차');
   info(`학과 ${depts.length}개 (모집인원 없는 단위 제외)`);
 }
 
+
+group('[S5] 크게 미달하는 학과에는 지원하지 않음');
+{
+  const cfg = Object.assign({}, M.CONFIG, { students: 3000 });
+  const rng = M.makeRng(5), pop = M.makePopulation(cfg, rng);
+  const { depts, profKeys } = M.prepareDepts('latest');
+  const { apps, appDiff } = M.chooseApplications(pop, depts, profKeys, cfg, rng);
+  let n = 0, low = 0;
+  for (let k = 0; k < apps.length; k++) if (apps[k] >= 0) { n++; if (appDiff[k] < cfg.minGap) low++; }
+  ok(`지원 시점 격차가 모두 minGap(${cfg.minGap}%p) 이상`, n > 500 && low === 0, `원서 ${n}장 중 미달 ${low}장`);
+  ok('일부 원서는 모형 밖 대학으로 감 (35개 대학 밖 선택지)', apps.some(x => x < 0));
+}
+
+group('[S6] 2026 경쟁률 학습');
+{
+  const cfg = Object.assign({}, M.CONFIG, { students: 300000, calibIters: 60 });
+  const { depts, profKeys } = M.prepareDepts('latest');
+  const role = M.splitHoldout(depts, cfg, M.makeRng(99));
+  const sample = M.makePopulation(Object.assign({}, cfg, { students: 4000 }), M.makeRng(1));
+  const cal = M.calibrate(sample, depts, profKeys, cfg, M.makeRng(2), role, null);
+  // 시뮬레이션 기대 지원자 수가 목표(학습 학과: 실제^α·예측^(1−α), 그 밖: 예측)를 재현
+  const reach = depts.map((_, d) => d).filter(d => cal.predicted[d] > 0);
+  const err = reach.map(d => Math.abs(Math.log(cal.predicted[d] / cal.target[d])));
+  const med = err.slice().sort((a, b) => a - b)[Math.floor(err.length / 2)];
+  ok('기대 지원자 수가 목표를 재현 (|log| 중앙값 < 0.05)', med < 0.05, `중앙값 ${med.toFixed(3)}`);
+  // 검증 학과는 자기 경쟁률을 쓰지 않는다: 목표 = 회귀 예측값 그대로
+  const test = depts.map((_, d) => d).filter(d => role[d] === 'test');
+  ok('검증 학과의 목표는 회귀 예측값 (자기 경쟁률 미사용)',
+    test.length > 0 && test.every(d => Math.abs(cal.target[d] - cal.predRate[d] * depts[d].cap) < 1e-9));
+  const tr = depts.map((_, d) => d).filter(d => role[d] === 'train');
+  ok('학습 학과 목표 = 실제와 예측의 가중 기하평균 (alpha)', tr.every(d => {
+    const want = depts[d].cap * Math.exp(cfg.alpha * Math.log(depts[d].rate) + (1 - cfg.alpha) * Math.log(cal.predRate[d]));
+    return Math.abs(cal.target[d] - want) < 1e-6; }));
+}
+
+group('[S7] 모형 밖 대학 합격은 덜 욕심낸 원서만 포기');
+{
+  // 학생 1명, 학과 2개(정원 각 1): 가군 상향(목표 -1) = 학과0, 나군 안정(목표 +1.5) = 학과1, 다군 = 모형 밖(목표 +0.3)
+  const depts = [{ cap: 1, cutP: 95 }, { cap: 1, cutP: 80 }];
+  const apps = Int32Array.from([0, 1, -1]), sc = Float32Array.from([500, 500, 0]);
+  const appPlan = Float32Array.from([-1, 1.5, 0.3]);
+  const r = M.deferredAcceptance(1, depts, apps, sc, { appPlan, outAdmit: Uint8Array.from([0, 0, 1]) });
+  ok('모형 밖 적정 합격이 있어도 상향 원서(학과0)에는 등록', r.match[0] === 0);
+  const r2 = M.deferredAcceptance(1, [{ cap: 0, cutP: 95 }, { cap: 1, cutP: 80 }], apps, sc,
+    { appPlan, outAdmit: Uint8Array.from([0, 0, 1]) });
+  ok('상향이 불합격이면 안정 원서(학과1) 대신 모형 밖 적정을 택함', r2.match[0] === -1 && r2.held[1].length === 0);
+}
+
+group('[S8] 모의 지원 도구의 합격 확률');
+{
+  const { admitProb } = require('../sim/apply');
+  ok('매 회 미충원이면 1', admitProb(500, [null, null, null], 10) === 1);
+  ok('합격선보다 훨씬 높으면 ≈1, 낮으면 ≈0', admitProb(600, [500, 502, 498], 10) > 0.999 && admitProb(400, [500, 502, 498], 10) < 0.001);
+  ok('합격선 평균과 같으면 0.5', Math.abs(admitProb(500, [500, 502, 498], 10) - 0.5) < 1e-6);
+}
+
 done();

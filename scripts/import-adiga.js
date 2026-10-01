@@ -136,7 +136,7 @@ function build() {
       }
       if (lr.cut.c === 'e') stats.derived++;
       depts.push({ n: unit, p: profileOf(id, g, unit), g, mg, cut: cuts[last], cy: last,
-        conf: lr.cut.c, cuts, cconf, eng, rate: lr.row.rate, final: lr.row.final });
+        conf: lr.cut.c, cuts, cconf, eng, rate: lr.row.rate, final: lr.row.final, extra: lr.row.extra });
     }
     depts.sort((a, b) => b.cut - a.cut || a.n.localeCompare(b.n, 'ko'));
     stats.units += depts.length;
@@ -161,7 +161,7 @@ function emit(univs) {
   L.push('   cuts : 학년도별 합격선 (2023~2026, 결과가 있는 해만)');
   L.push("   cconf: 학년도별 conf");
   L.push('   eng  : 학년도별 70% 컷 수험생의 영어 등급');
-  L.push('   rate : 최신 학년도 경쟁률   final : 최신 학년도 최종 모집인원');
+  L.push('   rate : 최신 학년도 경쟁률   final : 최신 학년도 최종 모집인원   extra : 최신 학년도 충원(추가합격) 인원');
   L.push('   ========================================================================= */');
   L.push('');
   L.push('const UNIVS = [');
@@ -170,7 +170,7 @@ function emit(univs) {
     L.push(`  { id:'${u.id}', name:'${u.name}', region:'${u.region}', adiga:'${u.adiga}', depts:[`);
     for (const d of u.depts) {
       L.push(`    {n:${JSON.stringify(d.n)}, p:'${d.p}', g:'${d.g}', mg:'${d.mg}', cut:${d.cut}, cy:${d.cy}, conf:'${d.conf}', ` +
-        `cuts:${j(d.cuts)}, cconf:${j(d.cconf)}, eng:${j(d.eng)}, rate:${d.rate}, final:${d.final}},`);
+        `cuts:${j(d.cuts)}, cconf:${j(d.cconf)}, eng:${j(d.eng)}, rate:${d.rate}, final:${d.final}, extra:${d.extra}},`);
     }
     L.push('  ]},');
   }
