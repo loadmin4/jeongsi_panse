@@ -15,6 +15,15 @@ function args() {
   for (const k of ['students', 'seed', 'runs', 'alpha', 'minGap', 'holdout', 'calibSample', 'perceiveSd']) if (o[k] !== undefined) cfg[k] = +o[k];
   return { cfg, cutMode: o.cut === 'avg' ? 'avg' : 'latest' };
 }
+// 학과별 70% 컷 차이 (환산 %p) — 역할별 중앙값·평균 절대값
+function shiftStats(depts, role, shift) {
+  const out = {};
+  for (const w of ['train', 'test', 'none']) {
+    const v = depts.map((_, i) => i).filter(i => role[i] === w && Number.isFinite(shift[i])).map(i => shift[i]);
+    out[w] = { n: v.length, median: median(v), mae: mean(v.map(Math.abs)), within05: v.filter(x => Math.abs(x) <= 0.5).length / v.length };
+  }
+  return out;
+}
 
 const t0 = Date.now();
 const lap = msg => console.log(`  [${((Date.now() - t0) / 1000).toFixed(1)}s] ${msg}`);
@@ -23,9 +32,9 @@ const median = a => { const s = a.slice().sort((x, y) => x - y); return s.length
 
 // 한 번의 모의 지원: 지원 → 합격·추가합격 → 학과별 지원자 수·합격선·충원 인원, (격차, 합격 여부) 표본
 // 주어진 원서로 합격·추가합격을 돌렸을 때의 전체 추가합격 비율
-function extraRateFor(students, depts, A, q, seed) {
+function extraRateFor(students, depts, A, q, seed, pi) {
   const outAdmit = M.drawOutside(students.length, A.apps, q, M.makeRng(seed));
-  const { cutoff } = M.deferredAcceptance(students.length, depts, A.apps, A.appScore, { appPlan: A.appPlan, outAdmit });
+  const { cutoff } = M.deferredAcceptance(students.length, depts, A.apps, A.appScore, { appPlan: A.appPlan, outAdmit, pi });
   let offers = 0;
   const per = new Int32Array(depts.length);
   for (let k = 0; k < A.apps.length; k++) { const d = A.apps[k]; if (d >= 0 && A.appScore[k] >= cutoff[d]) per[d]++; }
@@ -33,10 +42,10 @@ function extraRateFor(students, depts, A, q, seed) {
   return offers / depts.reduce((a, d) => a + d.cap, 0);
 }
 // 모형 밖 대학 이탈 확률 q를 이분 탐색 — 전체 추가합격 비율이 목표가 되도록 (원서는 고정)
-function fitDecline(students, depts, A, target, seed, lap) {
+function fitDecline(students, depts, A, target, seed, lap, pi) {
   let lo = 0, hi = 1;
   for (let it = 0; it < 14; it++) {
-    const q = (lo + hi) / 2, r = extraRateFor(students, depts, A, q, seed);
+    const q = (lo + hi) / 2, r = extraRateFor(students, depts, A, q, seed, pi);
     if (r < target) lo = q; else hi = q;
   }
   const q = (lo + hi) / 2;
@@ -49,7 +58,7 @@ function oneRun(students, prep, cfg, theta, seed, q, A) {
   A = A || M.chooseApplications(students, depts, profKeys, cfg, rng, theta);
   const { apps, appDiff, appScore, appPlan } = A;
   const outAdmit = M.drawOutside(students.length, apps, q, M.makeRng(seed + 1));
-  const { cutoff, held, match } = M.deferredAcceptance(students.length, depts, apps, appScore, { appPlan, outAdmit });
+  const { cutoff, held, match } = M.deferredAcceptance(students.length, depts, apps, appScore, { appPlan, outAdmit, pi: cfg.pi });
   const nApp = new Int32Array(D), offers = new Int32Array(D);
   const xs = [], ys = [];
   let outside = 0;
@@ -93,6 +102,15 @@ function main() {
   const { cfg, cutMode } = args();
   console.log(`가상 수험생 모의 지원 — ${cfg.students.toLocaleString()}명 × ${cfg.runs}회 · 크게 미달 기준 ${cfg.minGap}%p · 2026 반영 ${cfg.alpha}`);
   const prep = M.prepareDepts(cutMode), { depts } = prep, D = depts.length;
+  // 반복 보정 결과(sim/converge.js → sim/out/adjust.json): 학과별 지원층 보정 δ, 군별 선호 π
+  const adjFile = path.join(__dirname, 'out', 'adjust.json');
+  let adjusted = false;
+  if (fs.existsSync(adjFile) && !process.argv.includes('--no-adjust')) {
+    const adj = JSON.parse(fs.readFileSync(adjFile, 'utf8'));
+    depts.forEach(d => { d.delta = adj.delta[d.key] || 0; });
+    cfg.pi = adj.pi; adjusted = true;
+    lap(`반복 보정 결과 적용 (${adj.iterations}회 보정, π = ${adj.pi.map(x => x.toFixed(2)).join('/')})`);
+  }
   lap(`학과 ${D}개, 모집인원 합 ${depts.reduce((a, d) => a + d.cap, 0).toLocaleString()}명`);
 
   // 1. 2026 경쟁률로 학과 인기도 학습 (검증 학과 제외)
@@ -109,7 +127,7 @@ function main() {
   const extraTarget = cfg.extraTarget !== null ? cfg.extraTarget : depts.reduce((a, d) => a + (d.extra || 0), 0) / capAll0;
   const A0 = M.chooseApplications(students, depts, prep.profKeys, cfg, M.makeRng(cfg.seed + 1000), cal.theta);
   lap('첫 회 원서 완료');
-  const q = fitDecline(students, depts, A0, extraTarget, cfg.seed + 500, lap);
+  const q = fitDecline(students, depts, A0, extraTarget, cfg.seed + 500, lap, cfg.pi);
   const runs = [];
   for (let r = 0; r < cfg.runs; r++) {
     runs.push(oneRun(students, prep, cfg, cal.theta, cfg.seed + 1000 + r, q, r === 0 ? A0 : null));
@@ -164,7 +182,8 @@ function main() {
       cutoffs: runs.map(r => Number.isFinite(r.cutoff[i]) ? +r.cutoff[i].toFixed(3) : null) })),
   };
   fs.writeFileSync(path.join(dir, 'model.json'), JSON.stringify(model));
-  const rep = { generatedAt: model.generatedAt, cutMode, config: cfg, metrics, fit, byGun, totals, declineQ: q,
+  const shiftByRole = shiftStats(depts, role, Float64Array.from(depts, (_, i) => mean(runs.map(r => r.shift[i]))));
+  const rep = { generatedAt: model.generatedAt, cutMode, config: cfg, metrics, fit, byGun, totals, declineQ: q, shiftByRole, adjusted,
     examples: examples(model.depts) };
   fs.writeFileSync(path.join(dir, 'report.json'), JSON.stringify(rep, null, 2));
   fs.writeFileSync(path.join(dir, 'report.md'), md(rep));
@@ -209,6 +228,16 @@ function md(o) {
     `- 미충원 학과 평균 ${tt.unfilled.toFixed(0)}개 (시뮬레이션이 지원자를 다 붙잡지 못한 학과).`,
     `- 70% 컷 차이 = 시뮬레이션 등록자 70% 컷 − 실측 합격선 (환산 %p). 0이면 경쟁 수준이 현실과 같다.`,
     `- *전체 경쟁률은 경쟁률 미공개 학과의 예측 원서도 포함한 값.`, '');
+  if (o.shiftByRole) {
+    const sb = o.shiftByRole;
+    L.push(`### 학과별 70% 컷 차이 ${o.adjusted ? '(반복 보정 적용)' : '(반복 보정 없음)'}`, '',
+      `검증 학과는 자기 합격선을 보지 않았다 — 학습 학과에서 배운 지원층 보정만 받는다.`, '',
+      `| | 학과 수 | 중앙값 | 평균 절대값 | ±0.5%p 이내 |`, `|---|---:|---:|---:|---:|`);
+    const nm = { train: '학습 학과', test: '**검증 학과**', none: '경쟁률 미공개 학과' };
+    for (const w of ['train', 'test', 'none']) if (sb[w].n)
+      L.push(`| ${nm[w]} | ${sb[w].n} | ${sg(sb[w].median)} | ${sb[w].mae.toFixed(2)} | ${p1(sb[w].within05)} |`);
+    L.push('');
+  }
   const warn = Math.abs(tt.shift) > 0.5;
   if (warn) L.push(`> ⚠ 70% 컷 차이가 ±0.5%p를 넘는다 — 아래 합격확률 곡선의 위치는 그만큼 믿기 어렵다.`, '');
   L.push(`## 합격확률 곡선`, '', `**P(합격) = σ(${o.fit.a.toFixed(3)} + ${o.fit.b.toFixed(3)} × 격차)** — 50% 지점 ${sg(-o.fit.a / o.fit.b)}%p (현재 앱 0)`, '');
@@ -225,4 +254,4 @@ function md(o) {
 }
 
 if (require.main === module) main();
-module.exports = { oneRun, rateMetrics, md };
+module.exports = { oneRun, rateMetrics, md, fitDecline, shiftStats, mean, median };

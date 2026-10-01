@@ -47,6 +47,7 @@ const CONFIG = {
   ridge: 3.0,           // 경쟁률 예측 회귀의 릿지 벌점
   holdout: 0.2,         // 검증용으로 학습에서 빼는 학과 비율
   runs: 3,              // 시드를 바꿔 돌리는 횟수 (예상 경쟁률·합격선 분포)
+  pi: [0, 0, 0],        // 군별 선호 보정 (가·나·다). converge.js가 다군 추가합격 비율에 맞춰 학습
   extraTarget: null,    // 모형 밖 대학 이탈 확률 q를 맞출 전체 추가합격 비율 (null = 2026 실측 충원인원/모집인원)
 };
 
@@ -174,7 +175,8 @@ function candidates(st, depts, profKeys, cfg, buf, plan, rng) {
     const x = (buf[dp.p] - cutTotalFor(dp, cal)) / 10;
     const xp = noisy ? x + cfg.perceiveSd * rng.normal() : x;
     if (xp < cfg.minGap) continue;                      // (체감상) 크게 미달 → 지원하지 않음
-    const g = dp.gi, dt = xp - (plan[g] + plan[3]);
+    // dp.delta: 학과별 지원층 보정 (converge.js가 70% 컷을 실측에 맞추며 학습). +면 더 낮은 성적대가 노린다
+    const g = dp.gi, dt = xp + (dp.delta || 0) - (plan[g] + plan[3]);
     if (Math.abs(dt) > cfg.window) continue;
     out[g].push(d, Math.exp(-dt * dt / s2), x);
   }
@@ -325,14 +327,16 @@ function calibrate(students, depts, profKeys, cfg, rng, role, log) {
 // 반환: 학생별 등록 학과(match), 학과별 최종 합격선 점수(cutoff; 미충원이면 -Infinity).
 function deferredAcceptance(n, depts, apps, appScore, opt) {
   const D = depts.length, plan = opt && opt.appPlan, out = opt && opt.outAdmit;
+  // pi[g]: 군별 선호 보정 — 원서 선호 키 = 목표 격차 + pi[g] (클수록 그 군 원서를 덜 선호 → 합격해도 다른 군으로 빠짐)
+  const pi = (opt && opt.pi) || [0, 0, 0], key = (i, g) => plan[i * 3 + g] + pi[g];
   const prefs = new Array(n);
   for (let i = 0; i < n; i++) {
     let limit = Infinity;   // 이보다 목표 격차가 큰(덜 욕심낸) 원서는 모형 밖 합격에 밀린다
-    if (out && plan) for (let g = 0; g < 3; g++) if (out[i * 3 + g]) limit = Math.min(limit, plan[i * 3 + g]);
+    if (out && plan) for (let g = 0; g < 3; g++) if (out[i * 3 + g]) limit = Math.min(limit, key(i, g));
     const list = [];
     for (let g = 0; g < 3; g++) { const d = apps[i * 3 + g];
-      if (d >= 0 && !(plan && plan[i * 3 + g] > limit)) list.push(g); }
-    if (plan) list.sort((a, b) => plan[i * 3 + a] - plan[i * 3 + b]);
+      if (d >= 0 && !(plan && key(i, g) > limit)) list.push(g); }
+    if (plan) list.sort((a, b) => key(i, a) - key(i, b));
     else list.sort((a, b) => depts[apps[i * 3 + b]].cutP - depts[apps[i * 3 + a]].cutP);
     prefs[i] = list; // 군 번호 순서
   }
