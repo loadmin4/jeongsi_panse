@@ -239,4 +239,14 @@ group('[E15] 회귀: 표준점수·백분위 중 하나만 입력하면 빈 쪽�
   ok('표준점수만 입력해도 둘 다 입력한 것과 격차 차이 0.5%p 이내', gap(rf, rs) < 0.5, `최대 ${gap(rf, rs).toFixed(2)}%p`);
 }
 
+
+group('[E16] 5단계 경계는 고정값 (사용자 결정)');
+{
+  ok('하향 +2.0 · 적정 −0.2 · 소신 −1.5 · 상향 −2.0',
+    DEF_TH.하향 === 2.0 && DEF_TH.적정 === -0.2 && DEF_TH.소신 === -1.5 && DEF_TH.상향 === -2.0, JSON.stringify(DEF_TH));
+  ok('경계 사이 값의 판정', tierOf(2.0, DEF_TH) === '하향' && tierOf(1.99, DEF_TH) === '적정' && tierOf(-0.2, DEF_TH) === '적정' &&
+    tierOf(-0.21, DEF_TH) === '소신' && tierOf(-1.5, DEF_TH) === '소신' && tierOf(-1.51, DEF_TH) === '상향' &&
+    tierOf(-2.0, DEF_TH) === '상향' && tierOf(-2.01, DEF_TH) === '위험');
+}
+
 done();

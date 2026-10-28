@@ -86,7 +86,8 @@ const cutVals = (c,cal) => ({
   kor:{std:pctToStdCal(c,'kor',cal), pct:c}, math:{std:pctToStdCal(c,'math',cal), pct:c},
   tam:{std:pctToStdCal(c,'tam',cal), pct:c}
 });
-const DEF_TH = {하향:1.5, 적정:0.4, 소신:-0.7, 상향:-2.2};
+// 5단계 경계 (격차 %p 이상이면 그 단계) — 사용자가 정한 고정값. UI에서 바꾸지 않는다 [E16]
+const DEF_TH = {하향:2.0, 적정:-0.2, 소신:-1.5, 상향:-2.0};
 const TIER_ORDER = ['위험','상향','소신','적정','하향'];
 const TIER_VAR = {위험:'--t1', 상향:'--t2', 소신:'--t3', 적정:'--t4', 하향:'--t5'};
 const TIER_DESC = {

@@ -244,6 +244,22 @@ input[type=range]{width:100%; accent-color:var(--blue); height:20px}
 .seg.sm{padding:2px} .seg.sm button{padding:2px 9px; font-size:11px}
 .search{flex:1 1 180px; min-width:140px; background:var(--paper-2); border:1px solid var(--line); border-radius:999px; padding:8px 16px; font-size:13px}
 .search:focus{border-color:var(--blue); outline:none}
+.pick{background:var(--paper-2); border:1px solid var(--line); border-radius:999px; padding:7px 34px 7px 14px; font-size:12.5px;
+  appearance:none; -webkit-appearance:none; cursor:pointer; max-width:100%;
+  background-image:linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position:calc(100% - 17px) 52%, calc(100% - 12px) 52%; background-size:5px 5px; background-repeat:no-repeat}
+.pick:focus{border-color:var(--blue); outline:none}
+.pick.on{border-color:var(--blue); color:var(--blue-ink); font-weight:600}
+.seg.rg{flex-wrap:wrap; border-radius:16px}
+.unis{display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; max-height:300px; overflow-y:auto; align-content:flex-start}
+.uchip{display:flex; align-items:center; gap:6px; background:var(--paper); border:1px solid var(--line); border-radius:999px;
+  padding:5px 11px; font-size:12.5px; cursor:pointer}
+.uchip:hover{border-color:var(--blue)}
+.uchip small{font-family:var(--mono); font-size:10.5px; color:var(--ink-3)}
+.uchip small i{font-style:normal; color:var(--ink-2)}
+.uchip[aria-pressed=true]{background:var(--blue); border-color:var(--blue); color:#fff}
+.uchip[aria-pressed=true] small,.uchip[aria-pressed=true] small i{color:rgba(255,255,255,.85)}
+.unote{margin:10px 0 0; font-size:11.5px; color:var(--ink-3)}
 .chk{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-2); cursor:pointer; white-space:nowrap}
 .chk input{accent-color:var(--blue); width:15px; height:15px}
 .cnt-info{font-size:12px; color:var(--ink-3); margin-left:auto}
@@ -458,7 +474,7 @@ dialog::backdrop{background:rgba(8,12,28,.55)}
     <div class="headline">
       <div>
         <h2><b>내 성적</b>으로 다시 계산한<br><b class="hl"><span class="nDepts">전체</span> 학과</b>의 <b class="hl">판세</b>입니다.</h2>
-        <p>표준점수·백분위 중 하나만 넣어도 계산합니다. 경계값을 움직이면 다섯 칸이 바로 다시 나뉩니다.</p>
+        <p>표준점수·백분위 중 하나만 넣어도 계산합니다. 격차가 +2.00%p 이상이면 하향, −0.20 이상 적정, −1.50 이상 소신, −2.00 이상 상향, 그 아래는 위험입니다.</p>
       </div>
     </div>
 
@@ -474,23 +490,18 @@ dialog::backdrop{background:rgba(8,12,28,.55)}
         </table>
       </section>
 
-      <section class="panel" aria-label="5단계 경계">
-        <div class="sec-h"><h3>5단계 경계 <span class="eyebrow">컷 대비 %p</span></h3>
-          <button class="btn" id="thReset" type="button">기본값</button></div>
-        <div id="thRows"></div>
-        <div class="tiers">
-          <div><b style="color:var(--t5)">하향</b>여유 있게 넘어서는 안전 구간</div>
-          <div><b style="color:var(--t4)">적정</b>합격선을 안정적으로 넘는 주력 구간</div>
-          <div><b style="color:var(--t3)">소신</b>합격선 근처, 경쟁률·이월에 따라 갈림</div>
-          <div><b style="color:var(--t2)">상향</b>한 장 걸어볼 만한 도전 구간</div>
-          <div><b style="color:var(--t1)">위험</b>합격선과 차이가 커서 사실상 어려움</div>
-        </div>
+      <section class="panel" aria-label="지역별 대학">
+        <div class="sec-h"><h3>지역별 대학 <span class="eyebrow">누르면 그 대학 학과만 봅니다</span></h3></div>
+        <div class="seg rg" role="group" aria-label="지역" id="rgSeg"></div>
+        <div class="unis" id="uniChips"></div>
       </section>
     </div>
 
     <section class="controls" id="boardsec" aria-label="필터">
       <div class="seg" role="group" aria-label="계열"><button type="button" data-f="g" data-v="전체" aria-pressed="true">전체</button><button type="button" data-f="g" data-v="인문" aria-pressed="false">인문</button><button type="button" data-f="g" data-v="자연" aria-pressed="false">자연</button><button type="button" data-f="g" data-v="의약" aria-pressed="false">의약</button></div>
       <div class="seg" role="group" aria-label="모집군"><button type="button" data-f="mg" data-v="전체" aria-pressed="true">전 군</button><button type="button" data-f="mg" data-v="가" aria-pressed="false">가군</button><button type="button" data-f="mg" data-v="나" aria-pressed="false">나군</button><button type="button" data-f="mg" data-v="다" aria-pressed="false">다군</button></div>
+      <select class="pick" id="regionSel" aria-label="지역 선택"></select>
+      <select class="pick" id="univSel" aria-label="대학 선택"></select>
       <input class="search" id="q" type="search" placeholder="대학·학과·지역 검색" aria-label="대학·학과 검색">
       <label class="chk"><input type="checkbox" id="near" checked> 관심권만 (컷 ±6%p)</label>
       <span class="cnt-info" id="cntInfo"></span>
@@ -2455,7 +2466,8 @@ const cutVals = (c,cal) => ({
   kor:{std:pctToStdCal(c,'kor',cal), pct:c}, math:{std:pctToStdCal(c,'math',cal), pct:c},
   tam:{std:pctToStdCal(c,'tam',cal), pct:c}
 });
-const DEF_TH = {하향:1.5, 적정:0.4, 소신:-0.7, 상향:-2.2};
+// 5단계 경계 (격차 %p 이상이면 그 단계) — 사용자가 정한 고정값. UI에서 바꾸지 않는다 [E16]
+const DEF_TH = {하향:2.0, 적정:-0.2, 소신:-1.5, 상향:-2.0};
 const TIER_ORDER = ['위험','상향','소신','적정','하향'];
 const TIER_VAR = {위험:'--t1', 상향:'--t2', 소신:'--t3', 적정:'--t4', 하향:'--t5'};
 const TIER_DESC = {
@@ -2532,17 +2544,21 @@ const EXAMPLE = {
   tam2:{std:64, pct:94, grade:2, sel:'지구과학Ⅰ'}
 };
 let S = load() || JSON.parse(JSON.stringify(EXAMPLE));
-let TH = loadTH() || Object.assign({}, DEF_TH);
+const TH = DEF_TH; // 5단계 경계는 고정 (engine.js DEF_TH)
 let OV = loadOV() || {};
 let PICKS = loadPicks() || {};
-let F = {g:'전체', mg:'전체', q:'', near:true};
+let F = {g:'전체', mg:'전체', q:'', near:true, region:'전체', univ:''};
+// 지역 분류: 데이터의 도시명(청주·춘천·전주)은 시·도로 묶는다
+const REGION_OF = r => ({청주:'충북', 춘천:'강원', 전주:'전북'}[r] || r);
+const REGIONS = ['서울','경기','인천','부산','대구','대전','광주','충북','강원','전북'];
+const UNI_LIST = UNIVS.filter(u=>u.depts.length)
+  .map(u=>({id:u.id, name:u.name, region:REGION_OF(u.region), n:u.depts.length}))
+  .sort((a,b)=>a.name.localeCompare(b.name,'ko'));
 let CM = loadCM() || 'latest'; // 합격선 기준 (CUT_MODES)
 let RESULT = [];
 
 function save(){ try{ localStorage.setItem('jp.scores', JSON.stringify(S)); }catch(e){} }
 function load(){ try{ const r = localStorage.getItem('jp.scores'); return r? JSON.parse(r):null; }catch(e){ return null; } }
-function saveTH(){ try{ localStorage.setItem('jp.th', JSON.stringify(TH)); }catch(e){} }
-function loadTH(){ try{ const r = localStorage.getItem('jp.th'); return r? JSON.parse(r):null; }catch(e){ return null; } }
 function saveOV(){ try{ localStorage.setItem('jp.ov', JSON.stringify(OV)); }catch(e){} }
 function loadOV(){ try{ const r = localStorage.getItem('jp.ov'); return r? JSON.parse(r):null; }catch(e){ return null; } }
 function savePicks(){ try{ localStorage.setItem('jp.picks', JSON.stringify(PICKS)); }catch(e){} }
@@ -2593,27 +2609,28 @@ function onGradeInput(e){
   save(); render();
 }
 
-/* ══════════ 경계 슬라이더 ══════════ */
-function buildTh(){
-  const rows = [['하향','하향(안정) 시작'],['적정','적정 시작'],['소신','소신 시작'],['상향','상향 시작']];
-  $('#thRows').innerHTML = rows.map(([k,lab])=>
-    `<div class="throw">
-       <label for="th-${k}"><span class="dot" style="background:var(${TIER_VAR[k]})"></span>${lab}</label>
-       <input type="range" id="th-${k}" data-th="${k}" min="-6" max="6" step="0.1" value="${TH[k]}">
-       <output for="th-${k}" id="tho-${k}">${sgn(TH[k])}%p</output>
-     </div>`).join('');
-  $('#thRows').addEventListener('input', e=>{
-    const k = e.target.dataset.th; if(!k) return;
-    TH[k] = Number(e.target.value);
-    // 순서 강제: 하향 ≥ 적정 ≥ 소신 ≥ 상향
-    const ord = ['하향','적정','소신','상향'];
-    for(let i=0;i<ord.length-1;i++) if(TH[ord[i]] < TH[ord[i+1]]) {
-      if(k===ord[i]) TH[ord[i+1]] = TH[ord[i]]; else TH[ord[i]] = TH[ord[i+1]];
-    }
-    ord.forEach(x=>{ $('#th-'+x).value = TH[x]; $('#tho-'+x).textContent = sgn(TH[x])+'%p'; });
-    saveTH(); render();
-  });
+/* ══════════ 지역·대학 선택 ══════════ */
+const unisIn = rg => UNI_LIST.filter(u=>rg==='전체' || u.region===rg);
+function buildPickers(){
+  const cnt = rg => unisIn(rg).length;
+  $('#regionSel').innerHTML = ['전체',...REGIONS].map(rg=>
+    `<option value="${rg}"${F.region===rg?' selected':''}>${rg==='전체'?'전체 지역':rg} (${cnt(rg)})</option>`).join('');
+  $('#univSel').innerHTML = `<option value="">전체 대학 (가나다순)</option>` + unisIn(F.region).map(u=>
+    `<option value="${u.id}"${F.univ===u.id?' selected':''}>${esc(u.name)}</option>`).join('');
+  $('#rgSeg').innerHTML = ['전체',...REGIONS].map(rg=>
+    `<button type="button" data-rg="${rg}" aria-pressed="${F.region===rg}">${rg} <span class="mono">${cnt(rg)}</span></button>`).join('');
+  $('#uniChips').innerHTML = unisIn(F.region).map(u=>
+    `<button type="button" class="uchip" data-uid="${u.id}" aria-pressed="${F.univ===u.id}">${esc(u.name)} <small><i>${u.region}</i> · ${u.n}</small></button>`).join('')
+    + `<p class="unote">${F.univ ? '선택한 대학은 관심권(±6%p)과 관계없이 모든 학과를 보여줍니다. 다시 누르면 해제됩니다.' : '대학 이름 옆 숫자는 모집단위 수입니다.'}</p>`;
+  $('#regionSel').classList.toggle('on', F.region!=='전체');
+  $('#univSel').classList.toggle('on', !!F.univ);
 }
+function setRegion(rg){
+  F.region = rg;
+  if(F.univ && !unisIn(rg).some(u=>u.id===F.univ)) F.univ = '';   // 다른 지역 대학이 골라져 있으면 해제
+  buildPickers(); render();
+}
+function setUniv(id){ F.univ = id; buildPickers(); render(); }
 
 /* ══════════ 렌더 ══════════ */
 function meObj(){
@@ -2654,8 +2671,10 @@ function render(){
   let list = RESULT.filter(r=>
     (F.g==='전체' || r.g===F.g) &&
     (F.mg==='전체' || r.mg===F.mg) &&
-    (!q || (r.u+' '+r.d+' '+r.region).includes(q)) &&
-    (!F.near || Math.abs(r.diff) <= 6)
+    (F.region==='전체' || REGION_OF(r.region)===F.region) &&
+    (!F.univ || r.uid===F.univ) &&
+    (!q || (r.u+' '+r.d+' '+r.region+' '+REGION_OF(r.region)).includes(q)) &&
+    (F.univ || !F.near || Math.abs(r.diff) <= 6)
   );
   $('#cntInfo').textContent = list.length + ' / ' + RESULT.length + '개 학과 표시';
 
@@ -2853,11 +2872,10 @@ document.querySelectorAll('.seg button[data-f]').forEach(b=>{
 $('#q').addEventListener('input', e=>{ F.q = e.target.value; render(); });
 $('#near').addEventListener('change', e=>{ F.near = e.target.checked; render(); });
 document.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click', ()=>{ CM = b.dataset.cm; saveCM(); render(); }));
-$('#thReset').addEventListener('click', ()=>{
-  TH = Object.assign({}, DEF_TH); saveTH();
-  ['하향','적정','소신','상향'].forEach(x=>{ $('#th-'+x).value = TH[x]; $('#tho-'+x).textContent = sgn(TH[x])+'%p'; });
-  render();
-});
+$('#regionSel').addEventListener('change', e=>setRegion(e.target.value));
+$('#univSel').addEventListener('change', e=>setUniv(e.target.value));
+$('#rgSeg').addEventListener('click', e=>{ const b = e.target.closest('[data-rg]'); if(b) setRegion(b.dataset.rg); });
+$('#uniChips').addEventListener('click', e=>{ const b = e.target.closest('[data-uid]'); if(b) setUniv(F.univ===b.dataset.uid ? '' : b.dataset.uid); });
 $('#resetBtn').addEventListener('click', ()=>{
   S = JSON.parse(JSON.stringify(EXAMPLE)); save(); syncInputs(); render();
 });
@@ -2870,6 +2888,6 @@ $('#themeBtn').addEventListener('click', ()=>{
 $('#dlg').addEventListener('click', e=>{ if(e.target.id==='dlg') $('#dlg').close(); });
 
 buildGradeRows();
-buildTh();
+buildPickers();
 render();
 </script>
