@@ -135,9 +135,6 @@ a{color:inherit}
 .contact .big{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:clamp(28px,3vw,34px); font-weight:600; letter-spacing:-.02em; line-height:1.2}
 .contact .lines{font-size:12px; color:var(--on-blue-2); margin-top:6px}
 .contact .lines b{color:var(--on-blue); font-weight:600}
-.navybtn{display:flex; justify-content:center; align-items:center; gap:8px; width:100%; border:none; cursor:pointer;
-  background:var(--navy); color:#fff; border-radius:10px; padding:12px 16px; font-weight:600; font-size:13px}
-.navybtn:hover{filter:brightness(1.15)}
 .notice{background:rgba(255,255,255,.12); border:1px solid var(--on-blue-line); border-radius:16px; padding:16px 16px 14px}
 .notice .pill{display:inline-block; background:var(--paper); color:var(--blue-ink); border-radius:999px; padding:1px 10px; font-size:11px; font-weight:700}
 .notice b{display:block; margin:10px 0 6px; font-size:13px}
@@ -404,7 +401,6 @@ dialog::backdrop{background:rgba(8,12,28,.55)}
           <div class="big"><span class="nDepts">전체</span> 학과</div>
           <div class="lines"><b>34</b>개 대학 · <b>2023–2026</b>학년도<br>합격선 「어디가」 70% 컷 평균백분위</div>
         </div>
-        <button class="navybtn" id="resetBtn" type="button">예시 성적으로 되돌리기 <span aria-hidden="true">↺</span></button>
         <div class="notice">
           <span class="pill">알림</span>
           <b>반영비율·합격선은 공개 자료를 바탕으로 한 참고값입니다.</b>
@@ -2835,9 +2831,6 @@ $('#regionSel').addEventListener('change', e=>setRegion(e.target.value));
 $('#univSel').addEventListener('change', e=>setUniv(e.target.value));
 $('#rgSeg').addEventListener('click', e=>{ const b = e.target.closest('[data-rg]'); if(b) setRegion(b.dataset.rg); });
 $('#uniChips').addEventListener('click', e=>{ const b = e.target.closest('[data-uid]'); if(b) setUniv(F.univ===b.dataset.uid ? '' : b.dataset.uid); });
-$('#resetBtn').addEventListener('click', ()=>{
-  S = JSON.parse(JSON.stringify(EXAMPLE)); save(); syncInputs(); render();
-});
 $('#dlg').addEventListener('click', e=>{ if(e.target.id==='dlg') $('#dlg').close(); });
 
 buildGradeRows();
