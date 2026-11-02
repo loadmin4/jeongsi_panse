@@ -103,34 +103,11 @@ a{color:inherit}
   margin-left:calc(-1 * max(16px, env(safe-area-inset-left, 0px)))}
 @media (min-width:1272px){.brandtab{margin-left:0; border-radius:0 0 22px 22px}}
 .brandtab em{font-style:normal; color:var(--blue)}
-.navlinks{display:flex; gap:28px; margin-left:auto; font-size:13px; font-weight:500}
-.navlinks a{color:var(--on-blue); text-decoration:none; opacity:.92}
-.navlinks a:hover{opacity:1; text-decoration:underline; text-underline-offset:5px}
-@media (max-width:860px){.navlinks{display:none}}
-.navbtns{display:flex; gap:8px; margin-left:auto}
-@media (min-width:861px){.navbtns{margin-left:18px}}
-.ghost{background:transparent; border:1px solid var(--on-blue-line); color:var(--on-blue);
-  border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:500; cursor:pointer}
-.ghost:hover{background:rgba(255,255,255,.12)}
 
 .herogrid{position:relative; z-index:1; display:grid; gap:28px; padding-block:36px 56px;
-  grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,.86fr); align-items:start}
-@media (max-width:1040px){.herogrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .heroside{grid-column:1/-1}}
+  grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr); align-items:start}
+@media (max-width:860px){.herogrid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:720px){.herogrid{grid-template-columns:minmax(0,1fr); padding-block:22px 40px}}
-.kicker{display:flex; align-items:center; gap:10px; font-size:11.5px; font-weight:600; letter-spacing:.06em; color:var(--on-blue-2)}
-.kicker::before{content:""; width:34px; height:1px; background:var(--on-blue-2)}
-.hero h1{margin:14px 0 12px; font-size:clamp(28px,3.1vw,38px); line-height:1.3; font-weight:300; letter-spacing:-.025em; text-wrap:balance}
-.hero h1 b{font-weight:700}
-.lead{margin:0; color:var(--on-blue-2); font-size:13.5px; max-width:36ch}
-.menu{list-style:none; padding:0; margin:26px 0 0; display:flex; flex-direction:column; gap:16px}
-.menu a{display:grid; grid-template-columns:34px 1fr 26px; gap:12px; align-items:center; text-decoration:none; color:var(--on-blue)}
-.menu .mi{width:34px; height:34px; border-radius:10px; border:1px solid var(--on-blue-line); display:grid; place-items:center}
-.menu .mi svg{width:17px; height:17px}
-.menu b{display:block; font-size:13px; font-weight:600}
-.menu small{display:block; font-size:11.5px; color:var(--on-blue-2); line-height:1.4}
-.menu .go{width:24px; height:24px; border-radius:50%; background:var(--on-blue); color:var(--hero-b);
-  display:grid; place-items:center; font-size:12px; font-weight:700; transition:transform .16s}
-.menu a:hover .go{transform:translateX(3px)}
 
 /* 히어로 가운데 — 판세 요약 카드 (시안의 사진 자리) */
 .showcase{background:var(--paper); color:var(--ink); border-radius:22px; padding:20px 20px 18px; box-shadow:0 30px 60px -28px rgba(10,20,60,.55)}
@@ -401,27 +378,9 @@ dialog::backdrop{background:rgba(8,12,28,.55)}
   <div class="inner">
     <div class="nav">
       <a class="brandtab" href="#top" id="top">정시 <em>판세도</em></a>
-      <nav class="navlinks" aria-label="주요 메뉴">
-        <a href="#input">성적 입력</a><a href="#boardsec">판세 보드</a><a href="#tray">원서 3장</a><a href="#method">계산 방법</a>
-      </nav>
-      <div class="navbtns"><button class="ghost" id="themeBtn" type="button">테마</button></div>
     </div>
 
     <div class="herogrid">
-      <div>
-        <p class="kicker">수능 정시 지원 분석</p>
-        <h1>같은 성적이라도<br><b>대학마다 유리·불리</b>가<br>갈립니다.</h1>
-        <p class="lead">대학·학과마다 다른 영역별 반영비율과 영어 환산방식으로 내 환산점수를 다시 계산하고,
-          최근 합격선과의 격차로 <span class="nDepts">전체</span> 학과를 다섯 칸에 배치합니다.</p>
-        <ul class="menu">
-          <li><a href="#input"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg></span>
-            <span><b>반영비율 재계산</b><small>대학마다 다른 국·수·영·탐 비율</small></span><span class="go" aria-hidden="true">›</span></a></li>
-          <li><a href="#boardsec"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 19V9M10 19V5M15 19v-7M20 19v-4"/></svg></span>
-            <span><b>5단계 판정</b><small>위험 · 상향 · 소신 · 적정 · 하향</small></span><span class="go" aria-hidden="true">›</span></a></li>
-          <li><a href="#tray"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/></svg></span>
-            <span><b>원서 3장</b><small>가·나·다군 각 1장</small></span><span class="go" aria-hidden="true">›</span></a></li>
-        </ul>
-      </div>
 
       <!-- 판세 요약 -->
       <section class="showcase" aria-label="판세 요약">
@@ -907,12 +866,6 @@ $('#rgSeg').addEventListener('click', e=>{ const b = e.target.closest('[data-rg]
 $('#uniChips').addEventListener('click', e=>{ const b = e.target.closest('[data-uid]'); if(b) setUniv(F.univ===b.dataset.uid ? '' : b.dataset.uid); });
 $('#resetBtn').addEventListener('click', ()=>{
   S = JSON.parse(JSON.stringify(EXAMPLE)); save(); syncInputs(); render();
-});
-$('#themeBtn').addEventListener('click', ()=>{
-  const cur = document.documentElement.getAttribute('data-theme');
-  const dark = cur ? cur==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
-  render();
 });
 $('#dlg').addEventListener('click', e=>{ if(e.target.id==='dlg') $('#dlg').close(); });
 
